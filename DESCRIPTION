@@ -1,0 +1,21 @@
+Package: projectr
+Title: Manage R Projects
+Version: 0.01
+Authors: person("O", "Milgrim", email = "o@mlgrm.net", 
+                role = c("aut", "cre"))
+Description: Manage and track progress on a project, using gitlab for 
+    version control, google drive for backups, and toggl for time 
+    tracking.
+Depends: 
+    R (>= 3.4.4),
+    plyr,
+    magrittr
+Imports:
+    googledrive,
+    togglr,
+    httr,
+    devtools,
+    curl
+Licence: GPL-3.0 or later
+LazyData: true
+RoxygenNote: 6.1.0
