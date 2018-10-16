@@ -1,8 +1,8 @@
 #' create a new project
 #' 
+#' @param path local project location (parent directory)
 #' @param name project name
 #' @param dir project directory
-#' @param path local project location
 #' @param repo gitlab repository name
 #' @param url gitlab server url
 #' @param google_proj google drive location
@@ -11,37 +11,28 @@
 #'  
 #' before this function can be called, there must be a directory called 
 #' \code{local} in the working directory containing two authorization files
-#' and a configuration directory:
 #' 
 #' * \code{gitlab_token} a personal access token from gitlab with full api
 #'   scope
 #' * \code{drive_cache} a binary cache file authorizing \code{googledrive} to 
 #'   access your drive.  this can be created by running:
 #'   \code{googledrive::drive_auth(cache = "local/drive_cache")}
-#' * \code{.gd} a configuration directory for Emmanuel
-#'   Odeke's excellent \code{drive} software (https://github.com/odeke-em/drive)
-#'   This can be created by running \code{drive init} in a shell in the 
-#'   \code{local} directory.  Do not run \code{drive} again in this directory.
 #'   
 #' @export
 #' 
 create_project <- function(name,
-                    dir = name,
-                    path = getwd(),
-                    google_proj = name,
-                    google_path = "projects",
-                    repo = name,
-                    server = "gitlab.com",
-                    user = getOption("gitlab_user")){
-  # bug fix for HTTP2 framing layer error:
-  # https://github.com/cloudyr/googleCloudStorageR/issues/71
-  httr::set_config(httr::config(http_version = 0))
+                           path = getwd(),
+                           dir = name,
+                           google_proj = name,
+                           google_path = "projects",
+                           repo = name,
+                           server = "gitlab.com",
+                           user = getOption("gitlab_user")){
   
   # check for auth files
   if(! all(file.exists(
     "local/gitlab_token", 
-    "local/drive_cache",
-    "local/.gd")
+    "local/drive_cache")
   )) stop("missing authorization file(s).  see man page for details.")
   
   # set system-wide options
@@ -51,6 +42,7 @@ create_project <- function(name,
     proj_server = server,
     proj_user = user,
     proj_repo = repo,
+    proj_token = read_token("local/gitlab_token"),
     proj_drive_path = google_path,
     proj_drive_name = google_proj,
     httr_oauth_cache = "local/drive_cache"
@@ -63,12 +55,8 @@ create_project <- function(name,
     devtools::setup(paste(path, dir, sep = "/"))
   } else devtools::create(paste(path, dir, sep = "/"))
   root <- setwd(paste(path, dir, sep = "/"))
+  options(proj_root = root)
   dir.create("local")
-  file.copy(paste(
-    root,
-    "local/.gd",
-    sep = "/"
-  ), ".", recursive = TRUE)
   file.copy(paste(
     root,
     "local/drive_cache",
@@ -117,7 +105,8 @@ create_project <- function(name,
   # message("authenticate to google drive")
   
   drive_upload_dir(paste(path, dir, sep = "/"), 
-                   paste(google_path, dir, sep = "/"))
+                   paste(google_path, dir, sep = "/"),
+                   ignore = "local")
 
   # # make sure our projects directory exists
   # gdir <- googledrive::drive_get(google_path)

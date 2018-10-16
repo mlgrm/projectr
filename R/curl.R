@@ -1,3 +1,6 @@
+#' do a curl command with default settings for gitlab
+#' 
+#' @export
 gitlab_curl <- function(endpoint, method = "GET", atts = NULL){
   h <- 
     curl::new_handle() %>% 

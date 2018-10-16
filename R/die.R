@@ -3,8 +3,9 @@ die_gracefully <- function(...){
   stop(...)
 }
 
+#' clean up after a failed \code{create_project} run
 cleanup <- function(){
-  setwd("~/R/projectr")
+  setwd(getOption("proj_root", getwd()))
   local_dir <- paste(getOption("proj_path"), 
                      getOption("proj_dir"), 
                      sep = "/"
