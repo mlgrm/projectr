@@ -15,7 +15,8 @@ Imports:
     togglr,
     httr,
     devtools,
-    curl
+    curl,
+    mime
 Licence: GPL-3.0 or later
 LazyData: true
 RoxygenNote: 6.1.0

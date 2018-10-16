@@ -5,9 +5,24 @@
 #' @param path local project location
 #' @param repo gitlab repository name
 #' @param url gitlab server url
-#' @param token gitlab personal access token
 #' @param google_proj google drive location
 #' @param google_path google drive projects path
+#' 
+#'  
+#' before this function can be called, there must be a directory called 
+#' \code{local} in the working directory containing two authorization files
+#' and a configuration directory:
+#' 
+#' * \code{gitlab_token} a personal access token from gitlab with full api
+#'   scope
+#' * \code{drive_cache} a binary cache file authorizing \code{googledrive} to 
+#'   access your drive.  this can be created by running:
+#'   \code{googledrive::drive_auth(cache = "local/drive_cache")}
+#' * \code{.gd} a configuration directory for Emmanuel
+#'   Odeke's excellent \code{drive} software (https://github.com/odeke-em/drive)
+#'   This can be created by running \code{drive init} in a shell in the 
+#'   \code{local} directory.  Do not run \code{drive} again in this directory.
+#'   
 #' @export
 #' 
 create_project <- function(name,
@@ -17,8 +32,18 @@ create_project <- function(name,
                     google_path = "projects",
                     repo = name,
                     server = "gitlab.com",
-                    token = read_token("local/gitlab_token"),
                     user = getOption("gitlab_user")){
+  # bug fix for HTTP2 framing layer error:
+  # https://github.com/cloudyr/googleCloudStorageR/issues/71
+  httr::set_config(httr::config(http_version = 0))
+  
+  # check for auth files
+  if(! all(file.exists(
+    "local/gitlab_token", 
+    "local/drive_cache",
+    "local/.gd")
+  )) stop("missing authorization file(s).  see man page for details.")
+  
   # set system-wide options
   options(
     proj_dir = name,
@@ -41,14 +66,19 @@ create_project <- function(name,
   dir.create("local")
   file.copy(paste(
     root,
-    getOption("proj_cred_file","local/credentials.json"),
+    "local/.gd",
+    sep = "/"
+  ), ".", recursive = TRUE)
+  file.copy(paste(
+    root,
+    "local/drive_cache",
     sep = "/"
   ), "local/")
   file.copy(paste(
     root,
-    getOption("proj_cache", "local/drive_cache"),
+    "local/gitlab_token",
     sep = "/"
-    ), "local/")
+  ), "local/")
   dir.create("data")
   
   # create options.R
@@ -72,8 +102,10 @@ create_project <- function(name,
               server, user, repo)
       ) != 0) die_gracefully("git remote add origin failed")
     if(system("git add .") != 0) die_gracefully("git add failed")
-    if(system("git commit -m \"initial commit\"")) die_gracefully("git commit failed")
-    if(system("git push -u origin master") != 0) die_gracefully("git push failed")
+    if(system("git commit -m \"initial commit\"")) 
+      die_gracefully("git commit failed")
+    if(system("git push -u origin master") != 0) 
+      die_gracefully("git push failed")
   } else warning("i don't know how to set up git on ", Sys.info()$sysname,
                  ".  you're on your own.")
   fh <- file(".gitignore", "a")
@@ -84,30 +116,31 @@ create_project <- function(name,
   # create the remote directory on google drive
   # message("authenticate to google drive")
   
-  # make sure our projects directory exists
-  browser()
-  gdir <- googledrive::drive_get(google_path)
-  if(nrow(gdir) == 0 || ! any(grepl("/$", gdir$path))) 
-     googledrive::drive_mkdir(google_path)
-     
-  # if our project dir doesn't exist, create it
-  gdir <- googledrive::drive_get(paste(google_path, google_proj))
-  if(nrow(gdir) == 0 || ! any(grepl("/$", gdir$path)))
-    googledrive::drive_mkdir(paste(google_path, google_proj, sep = "/"))
+  drive_upload_dir(paste(path, dir, sep = "/"), 
+                   paste(google_path, dir, sep = "/"))
 
-  # using github.com/odeke-em/drive/ for now
-  fh <- file(".driveignore", "a")
-  writeLines("local/", fh)
-  close(fh)
-  if(Sys.info()["sysname"] == "Linux"){
-    message("authenticate to google, again")
-    if(system(paste("drive init --service-account-file", 
-                    getOption("proj_cred_file"))) != 0) 
-       die_gracefully("drive init failed")
-    if(system(sprintf("drive push -destination %s/%s -no-prompt", 
-                      google_path, google_proj)) != 0)
-      die_gracefully("drive push failed")
-  } else warning("i don't know how to set up drive on ", Sys.info()$sysname,
-                 ".  you're on your own.")
+  # # make sure our projects directory exists
+  # gdir <- googledrive::drive_get(google_path)
+  # if(nrow(gdir) == 0 || ! any(grepl("/$", gdir$path))) 
+  #    googledrive::drive_mkdir(google_path)
+  #    
+  # # if our project dir doesn't exist, create it
+  # gdir <- googledrive::drive_get(paste(google_path, google_proj))
+  # if(nrow(gdir) == 0 || ! any(grepl("/$", gdir$path)))
+  #   Sys.sleep(1)
+  #   googledrive::drive_mkdir(paste(google_path, google_proj, sep = "/"))
+  # 
+  # # using github.com/odeke-em/drive/ for now
+  # fh <- file(".driveignore", "a")
+  # writeLines("local/", fh)
+  # close(fh)
+  # if(Sys.info()["sysname"] == "Linux"){
+  #   # if(system("drive init") != 0)
+  #   #    die_gracefully("drive init failed")
+  #   if(system(sprintf("drive push -destination %s/%s -no-prompt -force .", 
+  #                     google_path, google_proj)) != 0)
+  #     die_gracefully("drive push failed")
+  # } else warning("i don't know how to set up drive on ", Sys.info()$sysname,
+  #                ".  you're on your own.")
 }
 

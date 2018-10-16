@@ -16,6 +16,7 @@ cleanup <- function(){
                       getOption("proj_repo")
   )
   gitlab_curl(endpoint, "DELETE")
+  Sys.sleep(1)
   drive_dir <- paste(getOption("proj_drive_path"), 
                      getOption("proj_drive_name"), 
                      sep = "/"
