@@ -51,6 +51,19 @@ drive_upload_dir <- function(from, to = from,
     }) %>% dplyr::bind_rows()
   
 }
+
+#' backup local data to drive
+#' 
+#' @export()
+backup <- function(ignore = c("local", ".git")){
+  files <- drive_update_dir(
+    from = paste(getOption("proj_path"), getOption("proj_dir"), sep = "/"),
+    to = paste(getOption("proj_drive_path"), 
+               getOption("proj_drive_name"), sep = "/"),
+    ignore = ignore
+  )
+  save(files, file = "local/drive_files.Rdata")
+}
   
   
 is_dir <- function(df)

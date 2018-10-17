@@ -107,6 +107,7 @@ project <- function(name,
     paste(drive_path, drive_proj, sep = "/"),
     ignore = unique(c(dirname(drive_cache), "local", ".git"))
   )
+  save(files, file = "local/drive_files.Rdata")
 
   structure(list(
     git = response, 
