@@ -13,7 +13,8 @@ drive_upload_dir(from, to = from, ignore = NULL, regex = FALSE,
 \item{to}{remote directory path (not parent)
 
 if \code{to} exists, the contents of \code{from} will be copied into 
-\code{to}, otherwise \code{to} will first be created.  if a file in \from
+\code{to}, otherwise \code{to} will first be created.  if a file in 
+\code{from}
 already exists in \code{to}, it will be updated, otherwise it will be 
 uploaded.  subdirectories will be recursed}
 }
