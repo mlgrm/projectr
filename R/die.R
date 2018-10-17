@@ -4,6 +4,8 @@ die_gracefully <- function(...){
 }
 
 #' clean up after a failed \code{create_project} run
+#' 
+#' @export
 cleanup <- function(){
   setwd(getOption("proj_root", getwd()))
   local_dir <- paste(getOption("proj_path"), 
