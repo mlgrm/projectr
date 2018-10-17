@@ -14,8 +14,8 @@ Imports:
     googledrive,
     togglr,
     httr,
-    devtools,
-    curl
+    curl,
+    rstudioapi
 Licence: GPL-3.0 or later
 LazyData: true
 RoxygenNote: 6.1.0

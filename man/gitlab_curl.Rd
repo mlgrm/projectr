@@ -4,7 +4,8 @@
 \alias{gitlab_curl}
 \title{do a curl command with default settings for gitlab}
 \usage{
-gitlab_curl(endpoint, method = "GET", atts = NULL)
+gitlab_curl(endpoint, method = "GET", atts = NULL,
+  server = getOption("proj_server"), token = getOption("proj_token"))
 }
 \description{
 do a curl command with default settings for gitlab

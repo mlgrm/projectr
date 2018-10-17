@@ -35,9 +35,10 @@ project <- function(name,
   # check for auth files
   if( ! file.exists(drive_cache)) stop("missing drive_cache file.")
   if( is.null(gitlab_token)) stop("gitlab token is empty")
+  if( is.null(user)) stop("need to set user")
   
   # set system-wide options
-  options <- list(
+  opts <- names(options(
     proj_dir = name,
     proj_path = path,
     proj_root = getwd(),
@@ -48,16 +49,13 @@ project <- function(name,
     proj_drive_path = drive_path,
     proj_drive_name = drive_proj,
     httr_oauth_cache = drive_cache
-  )
-  
-  options(httr_oauth_cache = drive_cache)
+  ))
   
   # create the directory and rproj
-  if(dir.exists(paste(path, dir, sep = "/"))){
+  if(dir.exists(paste(path, dir, sep = "/")))
     if(file.exists(paste(path, dir, paste0(name, ".RProj"), sep = "/")))
       stop("project already exists.")
-    devtools::setup(paste(path, dir, sep = "/"))
-  } else devtools::create(paste(path, dir, sep = "/"))
+  rstudioapi::initializeProject(paste(path, dir, sep = "/"))
   root <- setwd(paste(path, dir, sep = "/"))
   dir.create(dirname(drive_cache), recursive = TRUE, showWarnings = FALSE)
   file.copy(paste(
@@ -70,8 +68,8 @@ project <- function(name,
   # create options.R
   fh <- file("local/options.R")
   paste(
-    names(options), 
-    paste0("\"", options, "\""), 
+    opts, 
+    paste0("\"", options()[opts], "\""), 
     sep = " = ", collapse = ",\n  "
   ) %>% 
     paste("options(\n  ", ., "\n)") %>%

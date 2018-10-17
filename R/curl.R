@@ -1,18 +1,22 @@
 #' do a curl command with default settings for gitlab
 #' 
 #' @export
-gitlab_curl <- function(endpoint, method = "GET", atts = NULL){
+gitlab_curl <- function(endpoint, method = "GET", 
+                        atts = NULL, 
+                        server = getOption("proj_server"),
+                        token = getOption("proj_token")
+                        ){
   h <- 
     curl::new_handle() %>% 
     curl::handle_setheaders(
-      `Private-Token`=getOption("proj_token")
+      `Private-Token` = token
     )
   if(! method %in% c("GET", "POST")) 
     h %<>% curl::handle_setopt(customrequest = method)
   url <- paste0(
-    ifelse(grepl("^https://", getOption("proj_server")), 
+    ifelse(grepl("^https://", server), 
            "", "https://"),
-    getOption("proj_server"),
+    server,
     "/api/v4/",
     endpoint
   )
