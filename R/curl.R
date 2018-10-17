@@ -23,10 +23,9 @@ gitlab_curl <- function(endpoint, method = "GET", atts = NULL){
       ) else url %<>% paste(att_string(atts), sep = "?")
   res <- curl::curl_fetch_memory(url, h)
   if(res$status_code >= 300){
-    warning("status code: ", res$status_code)
+    warning("status code:\n", rawToChar(res$content))
     return(res)
-  }
-  message("server returned status code: ", res$status_code)
+  } else message("server returned status code: ", res$status_code)
   res$content %>%  
     rawToChar %>% 
     jsonlite::fromJSON()

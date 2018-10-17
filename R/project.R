@@ -1,12 +1,14 @@
-#' create a new project
+#' create a new project and return its \code{project} object
 #' 
-#' @param path local project location (parent directory)
 #' @param name project name
-#' @param dir project directory
-#' @param repo gitlab repository name
-#' @param url gitlab server url
-#' @param google_proj google drive location
-#' @param google_path google drive projects path
+#' @param path local project location (parent directory)
+#' @param dir project directory (\code{name} by convention)
+#' @param repo gitlab repository name (\code{name} by convention)
+#' @param server gitlab server url
+#' @param gitlab_token gitlab personal access token
+#' @param drive_proj google drive location
+#' @param drive_path google drive projects path
+#' @param drive_cache google drive cache location
 #' 
 #'  
 #' before this function can be called, there must be a directory called 
@@ -20,33 +22,35 @@
 #'   
 #' @export
 #' 
-create_project <- function(name,
-                           path = getwd(),
-                           dir = name,
-                           google_proj = name,
-                           google_path = "projects",
-                           repo = name,
-                           server = "gitlab.com",
-                           user = getOption("gitlab_user")){
-  
+project <- function(name,
+                    path = getwd(),
+                    dir = name,
+                    repo = name,
+                    server = "gitlab.com",
+                    gitlab_token = read_token("local/gitlab_token"),
+                    drive_proj = name,
+                    drive_path = "projects",
+                    drive_cache = "local/drive_cache",
+                    user = getOption("gitlab_user")){
   # check for auth files
-  if(! all(file.exists(
-    "local/gitlab_token", 
-    "local/drive_cache")
-  )) stop("missing authorization file(s).  see man page for details.")
+  if( ! file.exists(drive_cache)) stop("missing drive_cache file.")
+  if( is.null(gitlab_token)) stop("gitlab token is empty")
   
   # set system-wide options
-  options(
+  options <- list(
     proj_dir = name,
     proj_path = path,
+    proj_root = getwd(),
     proj_server = server,
     proj_user = user,
     proj_repo = repo,
-    proj_token = read_token("local/gitlab_token"),
-    proj_drive_path = google_path,
-    proj_drive_name = google_proj,
-    httr_oauth_cache = "local/drive_cache"
+    proj_token = gitlab_token,
+    proj_drive_path = drive_path,
+    proj_drive_name = drive_proj,
+    httr_oauth_cache = drive_cache
   )
+  
+  options(httr_oauth_cache = drive_cache)
   
   # create the directory and rproj
   if(dir.exists(paste(path, dir, sep = "/"))){
@@ -55,34 +59,31 @@ create_project <- function(name,
     devtools::setup(paste(path, dir, sep = "/"))
   } else devtools::create(paste(path, dir, sep = "/"))
   root <- setwd(paste(path, dir, sep = "/"))
-  options(proj_root = root)
-  dir.create("local")
+  dir.create(dirname(drive_cache), recursive = TRUE, showWarnings = FALSE)
   file.copy(paste(
     root,
-    "local/drive_cache",
+    drive_cache,
     sep = "/"
-  ), "local/")
-  file.copy(paste(
-    root,
-    "local/gitlab_token",
-    sep = "/"
-  ), "local/")
+  ), dirname(drive_cache))
   dir.create("data")
   
   # create options.R
-  fh <- file("R/options.R") 
-  names(options())[grepl("^proj_", names(options())) & 
-                     names(options()) != "proj_token"] %>%
-    c("http_oauth_cache") %>% 
-    paste(., options()[.], sep = " = ", collapse = ",\n  ") %>% 
-    paste("options(\n  ", ., ")") %>%
+  fh <- file("local/options.R")
+  paste(
+    names(options), 
+    paste0("\"", options, "\""), 
+    sep = " = ", collapse = ",\n  "
+  ) %>% 
+    paste("options(\n  ", ., "\n)") %>%
     writeLines(fh)
   close(fh)
   
   # create the remote
-  gitlab_curl("projects", "POST", atts = c(name = repo))
+  message("creating gitlab project ", server, "/", user, "/", repo, ".")
+  response <- gitlab_curl("projects", "POST", atts = c(name = repo))
   
   # set up git if in linux
+  
   if(Sys.info()["sysname"] == "Linux"){
     if(system("git init") != 0) die_gracefully("git init failed")
     if(system(
@@ -97,39 +98,30 @@ create_project <- function(name,
   } else warning("i don't know how to set up git on ", Sys.info()$sysname,
                  ".  you're on your own.")
   fh <- file(".gitignore", "a")
-  writeLines(c("local/", "data/"), fh)
+  writeLines(unique(c("local/", "data/", dirname(drive_cache))), fh)
   close(fh)
-  
   
   # create the remote directory on google drive
   # message("authenticate to google drive")
   
-  drive_upload_dir(paste(path, dir, sep = "/"), 
-                   paste(google_path, dir, sep = "/"),
-                   ignore = "local")
+  files <- drive_upload_dir(
+    paste(path, dir, sep = "/"), 
+    paste(drive_path, drive_proj, sep = "/"),
+    ignore = unique(c(dirname(drive_cache), "local", ".git"))
+  )
 
-  # # make sure our projects directory exists
-  # gdir <- googledrive::drive_get(google_path)
-  # if(nrow(gdir) == 0 || ! any(grepl("/$", gdir$path))) 
-  #    googledrive::drive_mkdir(google_path)
-  #    
-  # # if our project dir doesn't exist, create it
-  # gdir <- googledrive::drive_get(paste(google_path, google_proj))
-  # if(nrow(gdir) == 0 || ! any(grepl("/$", gdir$path)))
-  #   Sys.sleep(1)
-  #   googledrive::drive_mkdir(paste(google_path, google_proj, sep = "/"))
-  # 
-  # # using github.com/odeke-em/drive/ for now
-  # fh <- file(".driveignore", "a")
-  # writeLines("local/", fh)
-  # close(fh)
-  # if(Sys.info()["sysname"] == "Linux"){
-  #   # if(system("drive init") != 0)
-  #   #    die_gracefully("drive init failed")
-  #   if(system(sprintf("drive push -destination %s/%s -no-prompt -force .", 
-  #                     google_path, google_proj)) != 0)
-  #     die_gracefully("drive push failed")
-  # } else warning("i don't know how to set up drive on ", Sys.info()$sysname,
-  #                ".  you're on your own.")
+  structure(list(
+    git = response, 
+    files = files, 
+    options = options
+    ), class = "project"
+  )
 }
 
+open.project <- function(p, ...)
+  rstudioapi::openProject(
+    paste(p$options$proj_path,
+          p$options$proj_dir, 
+          sep = "/"
+    ), ...
+  )
