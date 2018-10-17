@@ -116,6 +116,8 @@ project <- function(name,
   )
 }
 
+#' open a \code{project} object in rstudio
+#'
 open.project <- function(p, ...)
   rstudioapi::openProject(
     paste(p$options$proj_path,
