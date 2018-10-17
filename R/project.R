@@ -111,7 +111,7 @@ project <- function(name,
   structure(list(
     git = response, 
     files = files, 
-    options = options
+    options = options()[opts]
     ), class = "project"
   )
 }
