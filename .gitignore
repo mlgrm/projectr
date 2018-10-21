@@ -6,3 +6,4 @@ local/
 data/
 local/drive_token
 local/drive_cache
+.httr-oauth

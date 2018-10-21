@@ -14,7 +14,8 @@ drive_upload_dir(from, to = from, team_drive = NULL, ignore = NULL,
 
 \item{team_drive}{if \code{to} is on a team drive specify it here.}
 
-\item{ignore}{character vector files/folders to ignore, like with .gitignore}
+\item{ignore}{character vector files/folders to ignore, like with .gitignore.
+defaults to the contents of \code{".driveignore"} in the current directory}
 
 \item{regex}{whether to interpret \code{ignore} with regex, not yet 
 implemented

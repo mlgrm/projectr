@@ -3,7 +3,8 @@
 #' @param from local directory path
 #' @param to remote directory path (not parent)
 #' @param team_drive if \code{to} is on a team drive specify it here.
-#' @param ignore character vector files/folders to ignore, like with .gitignore
+#' @param ignore character vector files/folders to ignore, like with .gitignore.
+#' defaults to the contents of \code{".driveignore"} in the current directory
 #' @param regex whether to interpret \code{ignore} with regex, not yet 
 #' implemented
 #' 
@@ -20,19 +21,33 @@ drive_upload_dir <- function(from, to = from,
                              ignore = NULL,
                              regex = FALSE,
                              is_new = FALSE){
+  if(is.null(ignore) && file.exists(".driveignore")) 
+    ignore = readLines(".driveignore")
+  if(is.character(to) && !grepl("^/", to)) to <- paste0("/", to)
   # this will be updated if not is_new
   remote_files <- NULL
   if(! is_new){
-    remote <- retry(googledrive::drive_get(to, team_drive = team_drive))
-    remote <- remote[!is_trashed(remote),]
+    remote <- untrashed(retry(
+      googledrive::drive_get(to, team_drive = team_drive)
+    ))
     # if to doesn't resolve to any directory, we don't need to check_exists
     if(! any(is_dir(remote)))
-      return(drive_upload_dir(from, to, ignore, regex, is_new = TRUE))
+      return(drive_upload_dir(from, to, 
+                              team_drive = team_drive, 
+                              ignore = ignore, 
+                              regex = regex, 
+                              is_new = TRUE))
     remote <- remote[is_dir(remote), ]
     if(nrow(remote)!=1) stop("non-unique remote, n=",nrow(remote))
-    remote_files <- retry(googledrive::drive_ls(remote))
+    remote_files <- retry(googledrive::drive_ls(remote, 
+                                                team_drive = team_drive))
     # if is_new, make new directory
-  } else remote <- retry(googledrive::drive_mkdir(to)) 
+  } else {
+    remote <- retry(googledrive::drive_mkdir(
+      basename(to), parent = untrashed(googledrive::drive_get(dirname(to), 
+                                                    team_drive = team_drive))
+    ))
+  }
   # define a function to ignore ignore
   if(! is.null(ignore)){
     if(regex) stop("regex not implemented yet") else
@@ -47,6 +62,7 @@ drive_upload_dir <- function(from, to = from,
       if(file_test("-d",f)) 
         drive_upload_dir(f,
                          paste(to, basename(f), sep = "/"), 
+                         team_drive = team_drive,
                          ignore, 
                          regex, 
                          is_new
@@ -62,11 +78,12 @@ drive_upload_dir <- function(from, to = from,
 #' backup local data to drive
 #' 
 #' @export
-backup <- function(ignore = c("local", ".git")){
+backup <- function(ignore = c("local", ".git"), team_drive = NULL){
   files <- drive_update_dir(
     from = paste(getOption("proj_path"), getOption("proj_dir"), sep = "/"),
     to = paste(getOption("proj_drive_path"), 
                getOption("proj_drive_name"), sep = "/"),
+    team_drive = team_drive,
     ignore = ignore
   )
   save(files, file = "local/drive_files.Rdata")
@@ -80,3 +97,5 @@ is_dir <- function(df)
 
 is_trashed <- function(df)
   laply(df$drive_resource, getElement, name = "trashed")
+
+untrashed <- function(df)df[! is_trashed(df),]

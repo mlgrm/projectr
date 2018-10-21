@@ -16,9 +16,12 @@ retry <- function(expr, sleep = 1, max_tries = 10){
   while( attempts < max_tries ){
     attempts <- attempts + 1
     prom <- pryr::uneval(expr)
-    result <- tryCatch(eval(prom), error = identity)
+    env <- parent.frame()
+    result <- tryCatch(eval(prom, envir = env), error = identity)
     if(! is(result,"error")) return(result)
-    message("attempt ", attempts, " failed")
+    message("attempt ", attempts, " failed: ")
+    cat("\t")
+    message(result$message)
     Sys.sleep(sleep)
   }
   stop("maximum number of attempts exceeded")

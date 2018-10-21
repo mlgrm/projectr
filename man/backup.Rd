@@ -4,7 +4,7 @@
 \alias{backup}
 \title{backup local data to drive}
 \usage{
-backup(ignore = c("local", ".git"))
+backup(ignore = c("local", ".git"), team_drive = NULL)
 }
 \description{
 backup local data to drive

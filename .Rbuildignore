@@ -2,3 +2,4 @@
 ^\.Rproj\.user$
 ^local/
 ^local/drive_cache$
+^\.httr-oauth$
