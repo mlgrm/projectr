@@ -2,20 +2,27 @@
 #' 
 #' @param from local directory path
 #' @param to remote directory path (not parent)
+#' @param team_drive if \code{to} is on a team drive specify it here.
+#' @param ignore character vector files/folders to ignore, like with .gitignore
+#' @param regex whether to interpret \code{ignore} with regex, not yet implemented
 #' 
-#' if \code{to} exists, the contents of \code{from} will be copied into 
+#' if \code{to} is a string and the path exists, the contents of \code{from} 
+#' will be copied into 
 #' \code{to}, otherwise \code{to} will first be created.  if a file in 
 #' \code{from}
 #' already exists in \code{to}, it will be updated, otherwise it will be 
 #' uploaded.  subdirectories will be recursed
+#' 
+#' @export
 drive_upload_dir <- function(from, to = from, 
-                             ignore = NULL, 
+                             team_drive = NULL,
+                             ignore = NULL,
                              regex = FALSE,
                              is_new = FALSE){
   # this will be updated if not is_new
   remote_files <- NULL
   if(! is_new){
-    remote <- googledrive::drive_get(to)
+    remote <- googledrive::drive_get(to, team_drive = team_drive)
     remote <- remote[!is_trashed(remote),]
     # if to doesn't resolve to any directory, we don't need to check_exists
     if(! any(is_dir(remote)))
@@ -49,12 +56,11 @@ drive_upload_dir <- function(from, to = from,
             googledrive::drive_update(remote, f)
           }
     }) %>% dplyr::bind_rows()
-  
 }
 
 #' backup local data to drive
 #' 
-#' @export()
+#' @export
 backup <- function(ignore = c("local", ".git")){
   files <- drive_update_dir(
     from = paste(getOption("proj_path"), getOption("proj_dir"), sep = "/"),

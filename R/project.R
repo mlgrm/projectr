@@ -21,7 +21,6 @@
 #'   \code{googledrive::drive_auth(cache = "local/drive_cache")}
 #'   
 #' @export
-#' 
 project <- function(name,
                     path = getwd(),
                     dir = name,
