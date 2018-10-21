@@ -4,15 +4,23 @@
 \alias{drive_upload_dir}
 \title{upload a local directory to google drive, recursively}
 \usage{
-drive_upload_dir(from, to = from, ignore = NULL, regex = FALSE,
-  is_new = FALSE)
+drive_upload_dir(from, to = from, team_drive = NULL, ignore = NULL,
+  regex = FALSE, is_new = FALSE)
 }
 \arguments{
 \item{from}{local directory path}
 
-\item{to}{remote directory path (not parent)
+\item{to}{remote directory path (not parent)}
 
-if \code{to} exists, the contents of \code{from} will be copied into 
+\item{team_drive}{if \code{to} is on a team drive specify it here.}
+
+\item{ignore}{character vector files/folders to ignore, like with .gitignore}
+
+\item{regex}{whether to interpret \code{ignore} with regex, not yet 
+implemented
+
+if \code{to} is a string and the path exists, the contents of \code{from} 
+will be copied into 
 \code{to}, otherwise \code{to} will first be created.  if a file in 
 \code{from}
 already exists in \code{to}, it will be updated, otherwise it will be 

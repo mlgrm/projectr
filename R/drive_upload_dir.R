@@ -4,7 +4,8 @@
 #' @param to remote directory path (not parent)
 #' @param team_drive if \code{to} is on a team drive specify it here.
 #' @param ignore character vector files/folders to ignore, like with .gitignore
-#' @param regex whether to interpret \code{ignore} with regex, not yet implemented
+#' @param regex whether to interpret \code{ignore} with regex, not yet 
+#' implemented
 #' 
 #' if \code{to} is a string and the path exists, the contents of \code{from} 
 #' will be copied into 
@@ -22,16 +23,16 @@ drive_upload_dir <- function(from, to = from,
   # this will be updated if not is_new
   remote_files <- NULL
   if(! is_new){
-    remote <- googledrive::drive_get(to, team_drive = team_drive)
+    remote <- retry(googledrive::drive_get(to, team_drive = team_drive))
     remote <- remote[!is_trashed(remote),]
     # if to doesn't resolve to any directory, we don't need to check_exists
     if(! any(is_dir(remote)))
       return(drive_upload_dir(from, to, ignore, regex, is_new = TRUE))
     remote <- remote[is_dir(remote), ]
     if(nrow(remote)!=1) stop("non-unique remote, n=",nrow(remote))
-    remote_files <- googledrive::drive_ls(remote)
-  } else remote <- googledrive::drive_mkdir(to) # if is_new, make new directory
-
+    remote_files <- retry(googledrive::drive_ls(remote))
+    # if is_new, make new directory
+  } else remote <- retry(googledrive::drive_mkdir(to)) 
   # define a function to ignore ignore
   if(! is.null(ignore)){
     if(regex) stop("regex not implemented yet") else
@@ -50,10 +51,10 @@ drive_upload_dir <- function(from, to = from,
                          regex, 
                          is_new
         ) else if( is_new || ! basename(f) %in% remote_files$name )
-          googledrive::drive_upload(f, remote) else{
+          retry(googledrive::drive_upload(f, remote)) else{
             remote <- remote_files[remote_files$name == basename(f), ]
             if(nrow(remote) != 1) stop("non-unique remote, n=", nrow(remote))
-            googledrive::drive_update(remote, f)
+            retry(googledrive::drive_update(remote, f))
           }
     }) %>% dplyr::bind_rows()
 }
