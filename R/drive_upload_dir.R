@@ -23,7 +23,12 @@ drive_upload_dir <- function(from, to = from,
                              is_new = FALSE){
   if(is.null(ignore) && file.exists(".driveignore")) 
     ignore = readLines(".driveignore")
-  if(is.character(to) && !grepl("^/", to)) to <- paste0("/", to)
+  if(is.character(to) && is.null(team_drive) && ! grepl("^/", to)) 
+    to <- paste0("/", to)
+  if(! is.null(team_drive) && is.character(team_drive)){
+    team_drive <- googledrive::team_drive_get(team_drive)
+    if(nrow(team_drive) != 1) stop("no or non-unique team drive found")
+  }
   # this will be updated if not is_new
   remote_files <- NULL
   if(! is_new){
@@ -44,8 +49,14 @@ drive_upload_dir <- function(from, to = from,
     # if is_new, make new directory
   } else {
     remote <- retry(googledrive::drive_mkdir(
-      basename(to), parent = untrashed(googledrive::drive_get(dirname(to), 
-                                                    team_drive = team_drive))
+      basename(to), 
+      # if at the root of a team drive, need to give it the whole drive.  
+      # there's no "/" directory in team drives, unlike "My Drive"
+      parent = 
+        if(! is.null(team_drive) && dirname(to) == ".") team_drive else
+          untrashed(
+            googledrive::drive_get(dirname(to), team_drive = team_drive)
+          )
     ))
   }
   # define a function to ignore ignore

@@ -11,6 +11,7 @@
 #' is exceeded
 #' 
 #' @return the value of the successfully evaluated expression.
+#' @export
 retry <- function(expr, sleep = 1, max_tries = 10){
   attempts <- 0
   while( attempts < max_tries ){
@@ -26,7 +27,12 @@ retry <- function(expr, sleep = 1, max_tries = 10){
   }
   stop("maximum number of attempts exceeded")
 }
-  
+
+#' a function that fails sometimes
+#' 
+#' @description used to test \code{retry}
+#' 
+#' @export
 may_fail <- function(expr, prob = 0.5){
   ran <- runif(1)
   if(ran<prob) stop("failed") else expr
